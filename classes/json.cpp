@@ -83,8 +83,7 @@ string json::print() const {
 }
 
 int json::length() const {
-	return 0;
-
+  return 0;
 }
 
 int json::size() const{
