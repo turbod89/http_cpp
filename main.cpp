@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <curl/curl.h>
+#include "classes/json.h"
  
 int main(void)
 {
@@ -9,7 +10,7 @@ int main(void)
  
   curl = curl_easy_init();
   if(curl) {
-    curl_easy_setopt(curl, CURLOPT_URL, "http://localhost");
+    curl_easy_setopt(curl, CURLOPT_URL, "http://wwww.example.com");
     /* example.com is redirected, so we tell libcurl to follow redirection */ 
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
  
