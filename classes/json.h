@@ -20,6 +20,8 @@
 #include <vector>
 #include <map>
 
+#include "jsonNode.h"
+
 using namespace std;
 
 class json {
