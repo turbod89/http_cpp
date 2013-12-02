@@ -5,15 +5,9 @@
 #include <string>
 #include <curl/curl.h>
 
+#include "classes/chatConnection.h"
+
 using namespace std;
-
-
-size_t write_data(char *ptr, size_t size, size_t nmemb, void *userdata) { 
-    std::ostringstream *stream = (std::ostringstream*)userdata; 
-    size_t count = size * nmemb; 
-    stream->write(ptr, count); 
-    return count; 
-} 
 
 void displayArguments() {
   cout << endl;
@@ -69,143 +63,6 @@ bool configureWrite(const string& server,const string& user,const string& passwo
 
 }
 
-bool checkLogin(const string& server,const string& user,const string& password) {
-    
-  CURL *curl;
-  CURLcode res;
- 
-  curl = curl_easy_init();
-  
-  if(curl) {
-	  
-	stringstream canal;
-	  
-    curl_easy_setopt(curl, CURLOPT_URL, (server+"accounts.php?action=checkLogin").c_str());
-    curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-    curl_easy_setopt(curl, CURLOPT_USERPWD, (user+":"+password).c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &write_data); 
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &canal);
- 
-    //* Perform the request, res will get the return code */ 
-    res = curl_easy_perform(curl);
-    
-    //* Check for errors */ 
-    if(res != CURLE_OK)
-      fprintf(stderr, "curl_easy_perform() failed: %s\n",curl_easy_strerror(res));
-    else {
-	  bool error, checkLogin;
-	  canal >> error;
-	  if (error) {
-	    string s;
-	    getline(canal,s);
-	    cerr << s << endl;
-	    return false;
-	  }
-	  canal >> checkLogin;
-	  return checkLogin;
-	}
-      
- 
-    //* always cleanup */ 
-    curl_easy_cleanup(curl);
-    
-  }
-  
-  return false;
-  
-}
-
-bool newChat(const string& server,const string& user,const string& password, const string& chatName) {
-    
-  CURL *curl;
-  CURLcode res;
- 
-  curl = curl_easy_init();
-  
-  if(curl) {
-	  
-	stringstream canal;
-	  
-    curl_easy_setopt(curl, CURLOPT_URL, (server+"chats.php?action=newChat&name="+chatName).c_str());
-    curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-    curl_easy_setopt(curl, CURLOPT_USERPWD, (user+":"+password).c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &write_data); 
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &canal);
- 
-    //* Perform the request, res will get the return code */ 
-    res = curl_easy_perform(curl);
-    
-    //* Check for errors */ 
-    if(res != CURLE_OK)
-      fprintf(stderr, "curl_easy_perform() failed: %s\n",curl_easy_strerror(res));
-    else {
-	  bool error;
-	  canal >> error;
-	  if (error) {
-	    string s;
-	    getline(canal,s);
-	    cerr << s << endl;
-	    return false;
-	  }
-	  return true;
-	}
-      
- 
-    //* always cleanup */ 
-    curl_easy_cleanup(curl);
-    
-  }
-  
-  return false;
-  
-}
-
-bool signIn(const string& server,const string& user,const string& password) {
-    
-  CURL *curl;
-  CURLcode res;
- 
-  curl = curl_easy_init();
-  
-  if(curl) {
-	  
-	stringstream canal;
-	  
-    curl_easy_setopt(curl, CURLOPT_URL, (server+"accounts.php?action=signIn").c_str());
-    curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-    curl_easy_setopt(curl, CURLOPT_USERPWD, (user+":"+password).c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &write_data); 
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &canal);
- 
-    //* Perform the request, res will get the return code */ 
-    res = curl_easy_perform(curl);
-    
-    //* Check for errors */ 
-    if(res != CURLE_OK)
-      fprintf(stderr, "curl_easy_perform() failed: %s\n",curl_easy_strerror(res));
-    else {
-	  bool error, signin;
-	  canal >> error;
-	  if (error) {
-	    string s;
-	    getline(canal,s);
-	    cerr << s << endl;
-	    return false;
-	  }
-	  canal >> signin;
-	  return signin;
-	}
-      
- 
-    //* always cleanup */ 
-    curl_easy_cleanup(curl);
-    
-  }
-  
-  return false;
-  
-}
-
  
 int main(int argc, char* argv[]) {
 
@@ -227,6 +84,8 @@ int main(int argc, char* argv[]) {
   
   // do stuff
   
+  chatConnection CH(server,user,password);
+  
   if (string(argv[1]) == "configure") { 
     
     if (argc < 3) {
@@ -239,9 +98,10 @@ int main(int argc, char* argv[]) {
         return 1;
       } else {
 	    server = string(argv[3]);
-        if (configureWrite(server,user,password))
+        if (configureWrite(server,user,password)) {
           cout << "Server url set to: " << server << endl;
-        else
+          CH.setServer(server);
+        } else
           cout << "Error setting server url to: " << server << endl;
 	  }
 	
@@ -256,7 +116,10 @@ int main(int argc, char* argv[]) {
 	cout << "Password: ";
 	getline(cin,password);
 	
-	if (checkLogin(server,user,password)) {
+	CH.setUser(user);
+	CH.setPassword(password);
+	
+	if (CH.checkLogin()) {
 	  cout << "Succeful login!" << endl;
 	  if (configureWrite(server,user,password))
 	    cout << "Login as " << user << endl;
@@ -288,7 +151,7 @@ int main(int argc, char* argv[]) {
         return 1;
       } else {
 	    string chatName = string(argv[3]);
-        if (newChat(server,user,password,chatName)) {
+        if (CH.newChat(chatName)) {
 		  cout << "New chat succefully created" << endl;
 		} else {
 		  cout << "New chat not created"<< endl;
@@ -308,14 +171,17 @@ int main(int argc, char* argv[]) {
 	cout << "Password: ";
 	getline(cin,password);
 	
-    if (signIn(server,user,password)) {
+    CH.setUser(user);
+	CH.setPassword(password);
+	
+    if (CH.signIn()) {
 	  cout << "Succeful Sign In!" << endl;
 	  if (configureWrite(server,user,password))
 	    cout << "Login as " << user << endl;
 	  else
 	    cerr << "Error saving login on config.dat" << endl;
 	} else {
-	  cout << "Not signed in." << endl;
+	  cout << "Not signed in. Error: "<< CH.error() << endl;
 	  return 1;
 	}
 
