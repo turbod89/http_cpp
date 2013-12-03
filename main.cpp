@@ -9,18 +9,6 @@
 
 using namespace std;
 
-void displayArguments() {
-  cout << endl;
-  cout << endl;
-  cout << "Arguments: " << endl;
-  cout << "  -> " << "configure" << endl;
-  cout << "  -> " << "login" << endl;
-  cout << "  -> " << "logout" << endl;
-  cout << "  -> " << "status" << endl;
-  cout << endl;
-  cout << endl;
-}
-
 bool configureRead(chatConnection& CH) {
 
   ifstream fin;
@@ -106,6 +94,24 @@ void printStatus(ostream& out, chatConnection& CH) {
   out << endl;
  
 }
+
+void displayArguments(ostream& out) {
+  out << endl;
+  out << endl;
+  out << "  Argument tree" << endl;
+  out << "  =============" << endl;
+  out << endl;
+  out << "  + " << "configure" << endl;
+  out << "  |-> " << "server <servername>" << endl;
+  out << "  + " << "login" << endl;
+  out << "  + " << "logout" << endl;
+  out << "  + " << "new" << endl;
+  out << "  |-> " << "chat <chatname>" << endl;
+  out << "  - " << "status" << endl;
+  out << endl;
+  out << endl;
+}
+
 
 void printMsg(ostream& out, const string s){
   out << "  * " << s << endl;
@@ -198,7 +204,7 @@ bool newOptions(int start,int argc, char* argv[], chatConnection& CH) {
 int main(int argc, char* argv[]) {
 
   if (argc == 1) {
-    displayArguments();
+    displayArguments(cout);
     return 0;
   }
   
