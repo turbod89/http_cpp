@@ -49,6 +49,10 @@ class chatConnection {
     void setUser(const string& user);
     void setPassword(const string& password);
     
+    string getServer() const;
+    string getUser() const;
+    string getPassword() const;
+    
     string error() const;
     
     bool checkLogin();

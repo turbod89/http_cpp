@@ -21,7 +21,7 @@ void displayArguments() {
   cout << endl;
 }
 
-bool configureRead(string& server, string& user, string& password) {
+bool configureRead(chatConnection& CH) {
 
   ifstream fin;
   fin.open("config.dat");
@@ -29,10 +29,15 @@ bool configureRead(string& server, string& user, string& password) {
     while( !fin.eof() ) {
 	  string s;
       fin >> s;
-      if (s == "[SERVER]")
-        fin >> server;
-      else if (s == "[LOGIN]")
-        fin >> user >> password;
+      if (s == "[SERVER]") {
+        fin >> s;
+        CH.setServer(s);
+      } else if (s == "[LOGIN]") {
+        fin >> s;
+        CH.setUser(s);
+        fin >> s;
+        CH.setPassword(s);
+      }
     }
   else 
 	return false;
@@ -43,16 +48,16 @@ bool configureRead(string& server, string& user, string& password) {
 
 }
 
-bool configureWrite(const string& server,const string& user,const string& password) {
+bool configureWrite(const chatConnection& CH) {
 
   ofstream fout;
   fout.open("config.dat");
   if (fout.is_open()) {
 	  
-	if (server!="")
-	  fout << "[SERVER]" << endl << server << endl;
-	if (user != "" and password != "")
-	    fout << "[LOGIN]" << endl << user << endl << password << endl;
+	if (CH.getServer()!="")
+	  fout << "[SERVER]" << endl << CH.getServer() << endl;
+	if (CH.getUser() != "" and CH.getPassword() != "")
+	    fout << "[LOGIN]" << endl << CH.getUser() << endl << CH.getPassword() << endl;
 	    
   } else 
 	return false;
@@ -63,6 +68,132 @@ bool configureWrite(const string& server,const string& user,const string& passwo
 
 }
 
+//
+//  Forms
+//
+
+void askUserAndPassword(istream& in, ostream& out, chatConnection& CH) {
+ 
+  string user, pass;
+  out << endl;
+  out << "  User: ";
+  getline(in,user);
+  out << "  Password: ";
+  getline(in,pass);
+  out << endl;
+  CH.setUser(user);
+  CH.setPassword(pass);
+  
+}
+
+void printStatus(ostream& out, chatConnection& CH) {
+
+  out << endl;
+  out << "  Status" << endl;
+  out << "  ======" << endl;
+  out << endl;
+ 
+  if (CH.getServer() != "")
+	out << "  Server: " << CH.getServer() << endl;
+  else
+	out << "  Server: NOT ESTABLISHED"<< endl;
+  
+  if (CH.getUser() != "")
+	out << "  User: " << CH.getUser() << endl;
+  else
+	out << "  User: NOT LOGGED"<< endl;
+
+  out << endl;
+ 
+}
+
+void printMsg(ostream& out, const string s){
+  out << "  * " << s << endl;
+}
+
+void printError(ostream& out, const string s){
+  out << "  /!\\ " << s << endl;
+}
+
+void errorExpectedArgument(ostream& out) {printError(out,"Expected argument.");}
+void errorSaving(ostream& out) {printError(out,"Error saving.");}
+void errorBadArgument(ostream& out) {printError(out,"Unespected argument.");}
+
+void succesfullyAction(ostream& out) {printMsg(out,"Done succesfully!");}
+
+
+//
+//  configure
+//
+
+bool configureOptions(int start,int argc, char* argv[], chatConnection& CH) {
+  
+    string s;
+  
+    if (argc < start + 1) {
+		
+      errorExpectedArgument(cout);
+      return 1;
+      
+    } else if (string(argv[start]) == "server") {
+    
+      if (argc < start + 2) {
+		  
+        errorExpectedArgument(cout);
+        return 1;
+        
+      } else {
+	    
+	    CH.setServer(string(argv[start +1]));
+	    
+        if (configureWrite(CH))
+          succesfullyAction(cout);
+        else
+          errorSaving(cout);
+	  }
+	
+	} else {
+	  errorBadArgument(cout);
+    }
+  
+}
+
+//
+//  new
+//
+
+bool newOptions(int start,int argc, char* argv[], chatConnection& CH) {
+    
+    string s;
+    
+    if (argc < start +1) {
+		
+      errorExpectedArgument(cout);
+      return false;
+      
+    } else if (string(argv[start]) == "chat") {
+    
+      if (argc < start+2) {
+		  
+        errorExpectedArgument(cout);
+        return false;
+        
+      } else {
+		  
+        if (CH.newChat(string(argv[start+1])))
+		  succesfullyAction(cout);
+		else
+		  printError(cout,"Chat not created");
+		
+	  }
+	
+	} else {
+	  errorBadArgument(cout);
+	  return false;
+    }
+	  
+  return true;
+}
  
 int main(int argc, char* argv[]) {
 
@@ -71,144 +202,79 @@ int main(int argc, char* argv[]) {
     return 0;
   }
   
-  // Configure
+  chatConnection CH;
   
-  string server   = "";
-  string user     = "";
-  string password = "";
-  
-  if (!configureRead(server,user,password)) {
-    cout << "Cannot read config.dat" << endl;
+  if (!configureRead(CH)) {
+    printError(cout,"Cannot read config.dat");
     return 1;
   }
   
   // do stuff
   
-  chatConnection CH(server,user,password);
+  string s;
   
-  if (string(argv[1]) == "configure") { 
+  if (string(argv[1]) == "configure") {
+	  
+    if (!configureOptions(2,argc,argv,CH))
+      return 0;
     
-    if (argc < 3) {
-      cout << "Expected argument" << endl;
-      return 1;
-    } else if (string(argv[2]) == "server") {
-    
-      if (argc < 4) {
-        cout << "Expected server url" << endl;
-        return 1;
-      } else {
-	    server = string(argv[3]);
-        if (configureWrite(server,user,password)) {
-          cout << "Server url set to: " << server << endl;
-          CH.setServer(server);
-        } else
-          cout << "Error setting server url to: " << server << endl;
-	  }
-	
-	} else {
-	  cout << "Bad argument" << endl;
-    }
-  
   } else if (string(argv[1]) == "login") {
 	
-	cout << "User: ";
-	getline(cin,user);
-	cout << "Password: ";
-	getline(cin,password);
-	
-	CH.setUser(user);
-	CH.setPassword(password);
+	askUserAndPassword(cin,cout,CH);
 	
 	if (CH.checkLogin()) {
-	  cout << "Succeful login!" << endl;
-	  if (configureWrite(server,user,password))
-	    cout << "Login as " << user << endl;
-	  else
-	    cerr << "Error saving login on config.dat" << endl;
+		
+	  succesfullyAction(cout);
+	  
+	  if (!configureWrite(CH))
+	    errorSaving(cout);
+	    
 	} else {
-	  cout << "Wrong login." << endl;
+		
+	  printError(cout,"Wrong login.");
 	  return 1;
+	  
 	}
 	
   } else if (string(argv[1]) == "logout") {
-	  user = "";
-	  password = "";
+      
+      CH.setUser("");
+      CH.setPassword("");
 	  
-	  if (configureWrite(server,user,password))
-	    cout << "Logged out succesfully." << endl;
+	  if (configureWrite(CH))
+	    succesfullyAction(cout);
 	  else
-	    cerr << "Error saving logout on config.dat" << endl;
+	    errorSaving(cout);
 	  
   } else if (string(argv[1]) == "new") {
-
-    if (argc < 3) {
-      cout << "Expected argument" << endl;
-      return 1;
-    } else if (string(argv[2]) == "chat") {
-    
-      if (argc < 4) {
-        cout << "Expected new chat's name" << endl;
-        return 1;
-      } else {
-	    string chatName = string(argv[3]);
-        if (CH.newChat(chatName)) {
-		  cout << "New chat succefully created" << endl;
-		} else {
-		  cout << "New chat not created"<< endl;
-		}
-	  }
 	
-	} else {
-	  cout << "Bad argument" << endl;
-    }
-	  
-	  
-	  
+	if (!newOptions(2,argc,argv,CH))
+      return 0;
+
   } else if (string(argv[1]) == "signin") {
 	
-	cout << "User: ";
-	getline(cin,user);
-	cout << "Password: ";
-	getline(cin,password);
-	
-    CH.setUser(user);
-	CH.setPassword(password);
-	
+    askUserAndPassword(cin,cout,CH);	
+    
     if (CH.signIn()) {
-	  cout << "Succeful Sign In!" << endl;
-	  if (configureWrite(server,user,password))
-	    cout << "Login as " << user << endl;
+	  succesfullyAction(cout);
+	  
+	  if (configureWrite(CH))
+	    printMsg(cout,"Login as " + CH.getUser());
 	  else
-	    cerr << "Error saving login on config.dat" << endl;
+	    errorSaving(cout);
+	    
 	} else {
-	  cout << "Not signed in. Error: "<< CH.error() << endl;
+	  printError(cout,"Not signed in. Error: " + CH.error());
 	  return 1;
 	}
 
   } else if (string(argv[1]) == "status") {
-	 
-	 cout << endl;
-	 cout << "Status" << endl;
-	 cout << "======" << endl;
-	 cout << endl;
-	 if (server != "")
-	   cout << "Server: " << server << endl;
-	 else
-	   cout << "Server: NOT ESTABLISHED"<< endl;
-	 if (user != "")
-	   cout << "User: " << user << endl;
-  	 else
-	   cout << "User: NOT LOGGED"<< endl;
 
-	 cout << endl;
- 
+    printStatus(cout,CH);	 
+
   } else {
-  
-    cout <<"'"<< argv[1] << "' is not a valid argument" << endl; 
+    errorBadArgument(cout);
   }
 	
-     
-	
-
   return 0;
 }

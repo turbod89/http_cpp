@@ -67,9 +67,28 @@ void chatConnection::setPassword(const string& password){
   this->password = password;
 }
 
+string chatConnection::getServer() const{
+  return this->server;
+}
+
+string chatConnection::getUser() const{
+  return this->user;
+}
+
+string chatConnection::getPassword() const{
+  return this->password;
+}
+
+
+
 string chatConnection::error() const {
   return this->lastError;
 }
+
+//
+//  Concrete requests  
+//
+
 
 bool chatConnection::checkLogin(){
  
@@ -85,7 +104,7 @@ bool chatConnection::checkLogin(){
 	canal >> this->lastError;
     return false;
   }
-  
+  this->lastError = "";
   canal >> res;
   return res;
 }
@@ -105,7 +124,7 @@ bool chatConnection::signIn(){
 	canal >> this->lastError;
     return false;
   }
-  
+  this->lastError = "";
   canal >> res;
   return res;
 }
@@ -124,6 +143,8 @@ bool chatConnection::newChat(const string& name) {
 	canal >> this->lastError;
     return false;
   }
+
+  this->lastError = "";
 
   return true;
 }
